@@ -97,8 +97,8 @@ local ReportSection = UpdateTab:Section({
 
 -- WARNING TEXT
 ReportSection:Paragraph({
-    Title = "",
-    Content = "⚠️ Please do not spam reports.\nEach user can send one report every 24 hours.",
+    Title = "⚠️ Please do not spam reports.\nEach user can send one report every 24 hours.",
+    Content = "",
 })
 
 -- INPUT REPORT (WITH TITLE)
