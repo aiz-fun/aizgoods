@@ -78,34 +78,49 @@ local Players = game:GetService("Players")
 local MarketplaceService = game:GetService("MarketplaceService")
 local player = Players.LocalPlayer
 
+-- CONFIG
+local OWNER_ID = 8080406235
+local COOLDOWN_TIME = 60 * 60 * 24 -- 24 hours
+
 -- DISCORD WEBHOOK
 local WEBHOOK_URL = "https://discord.com/api/webhooks/1456545093140873250/uP8kVR4T44bvOmPpsqeabNnHzxv92tZV3r3FM28262As0mWzxUCSPL5eLGDs5-T0fb-T"
 
--- SECTION (UPDATE TAB, NO TITLE, BOX ON)
-local ReportSection = UpdateTab:Section({ 
-    Title = "", -- no title
+-- ANTI SPAM STORAGE
+_G.ReportCooldowns = _G.ReportCooldowns or {}
+
+-- SECTION (NO TITLE, BOX ON)
+local ReportSection = UpdateTab:Section({
+    Title = "",
     Box = true,
     Opened = true,
 })
 
--- INPUT REPORT
-ReportSection:Input({
+-- WARNING TEXT
+ReportSection:Paragraph({
     Title = "",
-    Desc = "",
+    Content = "⚠️ Please do not spam reports.\nEach user can send one report every 24 hours.",
+})
+
+-- INPUT REPORT (WITH TITLE)
+ReportSection:Input({
+    Title = "Problem Description", -- ✅ TITLE ADDED
+    Desc = "Describe the bug, error, or broken update",
     Value = "",
     InputIcon = "solar:smartphone-update-broken",
     Type = "Textarea",
-    Placeholder = "Describe the problem here...",
+    Placeholder = "Write your problem in detail...",
     Callback = function(text)
         _G.ReportText = text
     end
 })
 
--- BUTTON SEND REPORT
+-- BUTTON SEND
 ReportSection:Button({
     Title = "Send Report",
     Desc = "",
     Callback = function()
+        local now = os.time()
+        local userId = player.UserId
 
         if not _G.ReportText or _G.ReportText == "" then
             WindUI:Notify({
@@ -117,6 +132,24 @@ ReportSection:Button({
             return
         end
 
+        -- ANTI SPAM (EXCEPT OWNER)
+        if userId ~= OWNER_ID then
+            local lastSend = _G.ReportCooldowns[userId]
+            if lastSend and (now - lastSend) < COOLDOWN_TIME then
+                local remaining = COOLDOWN_TIME - (now - lastSend)
+                local hours = math.ceil(remaining / 3600)
+
+                WindUI:Notify({
+                    Title = "Slow Down",
+                    Content = "You can send another report in " .. hours .. " hour(s).",
+                    Duration = 4,
+                    Icon = "solar:shield-warning-broken",
+                })
+                return
+            end
+        end
+
+        -- BUILD WEBHOOK DATA
         local data = {
             username = "Script Report Bot",
             embeds = {{
@@ -147,31 +180,39 @@ ReportSection:Button({
         }
 
         local req = (syn and syn.request) or request or http_request
-        if req then
-            req({
-                Url = WEBHOOK_URL,
-                Method = "POST",
-                Headers = {
-                    ["Content-Type"] = "application/json"
-                },
-                Body = HttpService:JSONEncode(data)
-            })
-
-            WindUI:Notify({
-                Title = "Sent",
-                Content = "Your report has been sent.",
-                Duration = 3,
-                Icon = "solar:smartphone-update-broken",
-            })
-        else
+        if not req then
             WindUI:Notify({
                 Title = "Executor Error",
                 Content = "HTTP request is not supported.",
                 Duration = 4,
                 Icon = "solar:shield-warning-broken",
             })
+            return
         end
+
+        -- SEND
+        req({
+            Url = WEBHOOK_URL,
+            Method = "POST",
+            Headers = {
+                ["Content-Type"] = "application/json"
+            },
+            Body = HttpService:JSONEncode(data)
+        })
+
+        -- SAVE COOLDOWN
+        if userId ~= OWNER_ID then
+            _G.ReportCooldowns[userId] = now
+        end
+
+        -- SUCCESS
+        WindUI:Notify({
+            Title = "Sent",
+            Content = "Your report has been sent successfully.",
+            Duration = 3,
+            Icon = "solar:smartphone-update-broken",
+        })
+
+        _G.ReportText = ""
     end
 })
-
--- [End Update Tab]
