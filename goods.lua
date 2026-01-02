@@ -103,8 +103,8 @@ ReportSection:Paragraph({
 
 -- INPUT REPORT (WITH TITLE)
 ReportSection:Input({
-    Title = "Problem Description", 
-    Desc = "Describe the bug, error, or broken update",
+    Title = "Repots The Problem in Here", 
+    Desc = "",
     Value = "",
     InputIcon = "solar:smartphone-update-broken",
     Type = "Textarea",
